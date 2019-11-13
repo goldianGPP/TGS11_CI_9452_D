@@ -44,7 +44,7 @@ Class User extends REST_Controller{
         
         $validation->set_rules($rule);         
         if (!$validation->run()) {             
-            return $this->returnData($this->form_validation>error_array(), true);         
+            return $this->returnData($this->form_validation->error_array(), true);         
         }         
         
         $user = new UserData();         
