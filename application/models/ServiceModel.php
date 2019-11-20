@@ -36,29 +36,22 @@ class ServiceModel extends CI_Model
     }
     
     public function store($request) { 
-        $this->name = $request->name; 
-        $this->price = $request->price; 
-        $this->type = $request->type; 
-        $this->created_at = date('y-m-d H:i:s'); 
-
-        if($this->db->insert($this->table, $this)){
+        $this->name = $request->name;          
+        $this->price = $request->price;          
+        $this->type = $request->type;
+        $this->created_at = date('y-m-d H:i:s');
+        if($this->db->insert($this->table, $this)){             
             return ['msg'=>'Berhasil','error'=>false];
         }
-        return ['msg'=>'Gagal','error'=>true];
-    }
-    public function update($request,$id) { 
-        $updateData = [
-            'name' =>$request->name,
-            'price' => $request->price, 
-            'type' =>$request->type,
-            'created_at' =>date('y-m-d H:i:s')
-        ];
-
-        if($this->db->where('id',$id)->update($this->table, $updateData)){
-            return ['msg'=>'Berhasil','error'=>false];
-        }
-        return ['msg'=>'Gagal','error'=>true];
-
+        return ['msg'=>'Gagal','error'=>true];    
+    }     
+ 
+    public function update($request,$id) {          
+        $updateData = [ 'name' =>$request->name , 'price' => $request->price, 'type' =>$request->type];        
+        if($this->db->where('id',$id)->update($this->table, $updateData)){             
+            return ['msg'=>'Berhasil','error'=>false];         
+        }        
+        return ['msg'=>'Gagal','error'=>true];     
     }
 
     public function destroy($id){         

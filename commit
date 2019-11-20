@@ -1,0 +1,187 @@
+[1mdiff --git a/application/config/autoload.php b/application/config/autoload.php[m
+[1mindex 4bf375f..c56e037 100644[m
+[1m--- a/application/config/autoload.php[m
+[1m+++ b/application/config/autoload.php[m
+[36m@@ -103,7 +103,7 @@[m [m$autoload['helper'] = array();[m
+ | config files.  Otherwise, leave it blank.[m
+ |[m
+ */[m
+[31m-$autoload['config'] = array();[m
+[32m+[m[32m$autoload['config'] = array("jwt");[m
+ [m
+ /*[m
+ | -------------------------------------------------------------------[m
+[1mdiff --git a/application/controllers/Service.php b/application/controllers/Service.php[m
+[1mindex 583a562..a6fb4e6 100644[m
+[1m--- a/application/controllers/Service.php[m
+[1m+++ b/application/controllers/Service.php[m
+[36m@@ -17,6 +17,25 @@[m [mClass Service extends REST_Controller{[m
+     }     [m
+     [m
+     public function index_post($id = null){         [m
+[32m+[m[32m        $validation = $this->form_validation;[m[41m         [m
+[32m+[m[32m        $rule = $this->ServiceModel->rules();[m[41m  [m
+[32m+[m[32m        array_push($rule,[[m[41m             [m
+[32m+[m[32m                'field' => 'price',[m[41m             [m
+[32m+[m[32m                'label' => 'price',[m[41m             [m
+[32m+[m[32m                'rules' => 'required'[m[41m         [m
+[32m+[m[32m            ],[m
+[32m+[m[32m            [[m[41m             [m
+[32m+[m[32m                'field' => 'type',[m[41m             [m
+[32m+[m[32m                'label' => 'type',[m[41m             [m
+[32m+[m[32m                'rules' => 'required'[m[41m         [m
+[32m+[m[32m            ][m[41m         [m
+[32m+[m[32m        );[m[41m               [m
+[32m+[m[41m        [m
+[32m+[m[32m        $validation->set_rules($rule);[m[41m         [m
+[32m+[m[32m        if (!$validation->run()) {[m[41m             [m
+[32m+[m[32m            return $this->returnData($this->form_validation->error_array(), true);[m[41m         [m
+[32m+[m[32m        }[m[41m         [m
+[32m+[m[41m        [m
+         $service = new ServiceData();         [m
+         $service->name = $this->post('name');         [m
+         $service->price = $this->post('price');         [m
+[1mdiff --git a/application/controllers/User.php b/application/controllers/User.php[m
+[1mindex ff756b4..29a3982 100644[m
+[1m--- a/application/controllers/User.php[m
+[1m+++ b/application/controllers/User.php[m
+[36m@@ -6,13 +6,20 @@[m [mClass User extends REST_Controller{[m
+     public function __construct(){[m
+         header('Access-Control-Allow-Origin: *');         [m
+         header("Access-Control-Allow-Methods: GET, OPTIONS, POST, DELETE");         [m
+[31m-        header("Access-Control-Allow-Headers: Content-Type, ContentLength, Accept-Encoding");         [m
+[32m+[m[32m        header("Access-Control-Allow-Headers: Authorization, Content-Type, ContentLength, Accept-Encoding");[m[41m         [m
+         parent::__construct();         [m
+         $this->load->model('UserModel');         [m
+[31m-        $this->load->library('form_validation');     [m
+[32m+[m[32m        $this->load->library('form_validation');[m
+[32m+[m[32m        $this->load->helper(['jwt', 'authorization'])  ;[m[41m   [m
+     }     [m
+     [m
+     public function index_get(){         [m
+[32m+[m[32m        $data = $this->verify_request();[m
+[32m+[m
+[32m+[m[32m        $status = parent::HTTP_OK;[m
+[32m+[m[32m        if($data['status'] == 401){[m
+[32m+[m[32m            return $this->returnData($data['msg'],true);[m
+[32m+[m[32m        }[m
+         return $this->returnData($this->db->get('users')->result(), false);     [m
+     }     [m
+     [m
+[36m@@ -74,6 +81,47 @@[m [mClass User extends REST_Controller{[m
+         $response['message']=$msg;         [m
+         return $this->response($response);     [m
+     } [m
+[32m+[m
+[32m+[m[32m    private function verify_request()[m
+[32m+[m[32m    {[m
+[32m+[m[32m        // Get all the headers[m
+[32m+[m[32m        $headers = $this->input->request_headers();[m
+[32m+[m[32m        // Extract the token[m
+[32m+[m[32m        if(isset($headers['Authorization'])){[m
+[32m+[m[32m            $header = $headers['Authorization'];[m
+[32m+[m[32m        }[m
+[32m+[m[32m        else{[m
+[32m+[m[32m            $status = parent::HTTP_UNAUTHORIZED;[m
+[32m+[m[32m            $response = ['status' => $status, 'msg' => 'Unauthorized Access!'];[m
+[32m+[m[32m            return $response;[m
+[32m+[m[32m        }[m
+[32m+[m[32m        //return $this->response($header);[m
+[32m+[m[32m        $token = explode(" ", $header)[1];[m
+[32m+[m
+[32m+[m
+[32m+[m[32m        // Use try-catch[m
+[32m+[m[32m        // JWT library throws exception if the token is not valid[m
+[32m+[m[32m        try {[m
+[32m+[m[32m            // Validate the token[m
+[32m+[m[32m            // Successfull validation will return the decoded user data else returns false[m
+[32m+[m[32m            $data = AUTHORIZATION::validateToken($token);[m
+[32m+[m[32m            if ($data === false) {[m
+[32m+[m[32m                $status = parent::HTTP_UNAUTHORIZED;[m
+[32m+[m[32m                $response = ['status' => $status, 'msg' => 'Unauthorized Access!'];[m
+[32m+[m[32m            } else {[m
+[32m+[m[32m                $response = ['status' => 200, 'msg' => $data];[m
+[32m+[m[32m            }[m
+[32m+[m[32m            return $response;[m
+[32m+[m[32m        } catch (Exception $e) {[m
+[32m+[m[32m            // Token is invalid[m
+[32m+[m[32m            // Send the unathorized access message[m
+[32m+[m[32m            $status = parent::HTTP_UNAUTHORIZED;[m
+[32m+[m[32m            $response = ['status' => $status, 'msg' => 'Unauthorized Access! '];[m
+[32m+[m[32m            //$this->response($response, $status);[m
+[32m+[m[32m            return $response;[m
+[32m+[m[32m        }[m
+[32m+[m[32m    }[m
+[32m+[m
+ } [m
+ [m
+ Class UserData{     [m
+[1mdiff --git a/application/models/ServiceModel.php b/application/models/ServiceModel.php[m
+[1mindex fb9801e..12e78b0 100644[m
+[1m--- a/application/models/ServiceModel.php[m
+[1m+++ b/application/models/ServiceModel.php[m
+[36m@@ -36,29 +36,22 @@[m [mclass ServiceModel extends CI_Model[m
+     }[m
+     [m
+     public function store($request) { [m
+[31m-        $this->name = $request->name; [m
+[31m-        $this->price = $request->price; [m
+[31m-        $this->type = $request->type; [m
+[31m-        $this->created_at = date('y-m-d H:i:s'); [m
+[31m-[m
+[31m-        if($this->db->insert($this->table, $this)){[m
+[31m-            return ['msg'=>'Berhasil','error'=>false];[m
+[31m-        }[m
+[31m-        return ['msg'=>'Gagal','error'=>true];[m
+[31m-    }[m
+[31m-    public function update($request,$id) { [m
+[31m-        $updateData = [[m
+[31m-            'name' =>$request->name,[m
+[31m-            'price' => $request->price, [m
+[31m-            'type' =>$request->type,[m
+[31m-            'created_at' =>date('y-m-d H:i:s')[m
+[31m-        ];[m
+[31m-[m
+[31m-        if($this->db->where('id',$id)->update($this->table, $updateData)){[m
+[32m+[m[32m        $this->name = $request->name;[m[41m          [m
+[32m+[m[32m        $this->price = $request->price;[m[41m          [m
+[32m+[m[32m        $this->type = $request->type;[m
+[32m+[m[32m        $this->created_at = date('y-m-d H:i:s');[m
+[32m+[m[32m        if($this->db->insert($this->table, $this)){[m[41m             [m
+             return ['msg'=>'Berhasil','error'=>false];[m
+         }[m
+[31m-        return ['msg'=>'Gagal','error'=>true];[m
+[31m-[m
+[32m+[m[32m        return ['msg'=>'Gagal','error'=>true];[m[41m    [m
+[32m+[m[32m    }[m[41m     [m
+[32m+[m[41m [m
+[32m+[m[32m    public function update($request,$id) {[m[41m          [m
+[32m+[m[32m        $updateData = [ 'name' =>$request->name , 'price' => $request->price, 'type' =>$request->type];[m[41m        [m
+[32m+[m[32m        if($this->db->where('id',$id)->update($this->table, $updateData)){[m[41m             [m
+[32m+[m[32m            return ['msg'=>'Berhasil','error'=>false];[m[41m         [m
+[32m+[m[32m        }[m[41m        [m
+[32m+[m[32m        return ['msg'=>'Gagal','error'=>true];[m[41m     [m
+     }[m
+ [m
+     public function destroy($id){         [m
+[1mdiff --git a/application/models/UserModel.php b/application/models/UserModel.php[m
+[1mindex efe2779..b766cf6 100644[m
+[1m--- a/application/models/UserModel.php[m
+[1m+++ b/application/models/UserModel.php[m
+[36m@@ -50,5 +50,15 @@[m [mclass UserModel extends CI_Model[m
+         }         [m
+     return ['msg'=>'Gagal','error'=>true];     [m
+     } [m
+[32m+[m
+[32m+[m[32m    public function verify($request){[m
+[32m+[m[32m        $user = $this->db->select("*")->where(array('email' => $request->email))->get($this->table)->row_array();[m
+[32m+[m[32m        if (!empty($user) && password_verify($request->password, $user['password']) )[m[41m [m
+[32m+[m[32m        {[m
+[32m+[m[32m            return $user;[m
+[32m+[m[32m        }else{[m
+[32m+[m[32m            return false;[m
+[32m+[m[32m        }[m
+[32m+[m[32m    }[m
+ } [m
+ ?> [m
+\ No newline at end of file[m

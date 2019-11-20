@@ -17,6 +17,25 @@ Class Service extends REST_Controller{
     }     
     
     public function index_post($id = null){         
+        $validation = $this->form_validation;         
+        $rule = $this->ServiceModel->rules();  
+        array_push($rule,[             
+                'field' => 'price',             
+                'label' => 'price',             
+                'rules' => 'required'         
+            ],
+            [             
+                'field' => 'type',             
+                'label' => 'type',             
+                'rules' => 'required'         
+            ]         
+        );               
+        
+        $validation->set_rules($rule);         
+        if (!$validation->run()) {             
+            return $this->returnData($this->form_validation->error_array(), true);         
+        }         
+        
         $service = new ServiceData();         
         $service->name = $this->post('name');         
         $service->price = $this->post('price');         
